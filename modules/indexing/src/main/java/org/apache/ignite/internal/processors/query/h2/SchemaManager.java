@@ -35,6 +35,7 @@ import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.IgniteLogger;
 import org.apache.ignite.IgniteSystemProperties;
+import org.apache.ignite.cache.query.annotations.QuerySqlAggregateClass;
 import org.apache.ignite.cache.query.annotations.QuerySqlFunction;
 import org.apache.ignite.internal.GridKernalContext;
 import org.apache.ignite.internal.managers.systemview.walker.SqlIndexViewWalker;
@@ -301,7 +302,7 @@ public class SchemaManager {
      * @param sqlFuncs Custom SQL functions.
      * @throws IgniteCheckedException If failed.
      */
-    public void onCacheCreated(String cacheName, String schemaName, Class<?>[] sqlFuncs) throws IgniteCheckedException {
+    public void onCacheCreated(String cacheName, String schemaName, Class<?>[] sqlFuncs, Class<?>[] sqlAggFuncs) throws IgniteCheckedException {
         synchronized (schemaMux) {
             createSchema(schemaName, false);
         }
@@ -309,6 +310,7 @@ public class SchemaManager {
         cacheName2schema.put(cacheName, schemaName);
 
         createSqlFunctions(schemaName, sqlFuncs);
+        createSqlAggregateFunctions(schemaName, sqlAggFuncs);
     }
 
     /**
@@ -482,6 +484,30 @@ public class SchemaManager {
 
                     connMgr.executeStatement(schema, clause);
                 }
+            }
+        }
+    }
+
+    /**
+     * Registers SQL aggregate functions.
+     *
+     * @param schema Schema.
+     * @param clss Classes.
+     * @throws IgniteCheckedException If failed.
+     */
+    private void createSqlAggregateFunctions(String schema, Class<?>[] clss) throws IgniteCheckedException {
+        if (F.isEmpty(clss))
+            return;
+
+        for (Class<?> cls : clss) {
+            QuerySqlAggregateClass ann = cls.getAnnotation(QuerySqlAggregateClass.class);
+
+            if (ann != null) {
+                String alias = ann.alias().isEmpty() ? cls.getSimpleName() : ann.alias();
+
+                String clause = "CREATE AGGREGATE IF NOT EXISTS " + alias + " FOR \"" +cls.getName() + '"';
+
+                connMgr.executeStatement(schema, clause);
             }
         }
     }

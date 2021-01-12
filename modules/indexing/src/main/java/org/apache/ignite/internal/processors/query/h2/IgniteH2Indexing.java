@@ -2359,7 +2359,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
         throws IgniteCheckedException {
         rowCache.onCacheRegistered(cacheInfo);
 
-        schemaMgr.onCacheCreated(cacheName, schemaName, cacheInfo.config().getSqlFunctionClasses());
+        schemaMgr.onCacheCreated(cacheName, schemaName, cacheInfo.config().getSqlFunctionClasses(), cacheInfo.config().getSqlAggregateClasses());
     }
 
     /** {@inheritDoc} */
