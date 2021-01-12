@@ -371,6 +371,9 @@ public class GridSqlQuerySplitter {
 
         String rdcQry = qry.getSQL();
 
+        // Replace udaf function name, so the H2 will invoke a different udaf on reduce stage.
+        rdcQry = rdcQry.replaceAll("UDAF_MAP", "UDAF_REDUCE");
+
         SplitterUtils.checkNoDataTablesInReduceQuery(qry, rdcQry);
 
         // Setup a resulting reduce query.
