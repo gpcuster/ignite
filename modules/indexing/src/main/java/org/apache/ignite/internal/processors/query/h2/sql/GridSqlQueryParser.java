@@ -69,26 +69,8 @@ import org.h2.command.dml.SelectUnion;
 import org.h2.command.dml.Update;
 import org.h2.engine.Constants;
 import org.h2.engine.FunctionAlias;
-import org.h2.expression.Aggregate;
-import org.h2.expression.Alias;
-import org.h2.expression.CompareLike;
-import org.h2.expression.Comparison;
-import org.h2.expression.ConditionAndOr;
-import org.h2.expression.ConditionExists;
-import org.h2.expression.ConditionIn;
-import org.h2.expression.ConditionInConstantSet;
-import org.h2.expression.ConditionInSelect;
-import org.h2.expression.ConditionNot;
-import org.h2.expression.Expression;
-import org.h2.expression.ExpressionColumn;
-import org.h2.expression.ExpressionList;
-import org.h2.expression.Function;
-import org.h2.expression.JavaFunction;
-import org.h2.expression.Operation;
-import org.h2.expression.Parameter;
-import org.h2.expression.Subquery;
-import org.h2.expression.TableFunction;
-import org.h2.expression.ValueExpression;
+import org.h2.engine.UserAggregate;
+import org.h2.expression.*;
 import org.h2.index.ViewIndex;
 import org.h2.jdbc.JdbcPreparedStatement;
 import org.h2.result.SortOrder;
@@ -267,6 +249,9 @@ public class GridSqlQueryParser {
 
     /** */
     private static final Getter<JavaFunction, FunctionAlias> FUNC_ALIAS = getter(JavaFunction.class, "functionAlias");
+
+    private static final Getter<JavaAggregate, UserAggregate> AGG_FUNC_ALIAS = getter(JavaAggregate.class, "userAggregate");
+    private static final Getter<JavaAggregate, Expression[]> AGG_FUNC_ARGS = getter(JavaAggregate.class, "args");
 
     /** */
     private static final Getter<ExpressionColumn, String> SCHEMA_NAME = getter(ExpressionColumn.class, "schemaName");
@@ -2311,6 +2296,25 @@ public class GridSqlQueryParser {
                 for (Expression arg : f.getArgs())
                     res.addChild(parseExpression(arg, calcTypes));
             }
+
+            return res;
+        }
+
+        if (expression instanceof JavaAggregate) {
+            JavaAggregate f = (JavaAggregate)expression;
+
+            UserAggregate aggregate = AGG_FUNC_ALIAS.get(f);
+
+            GridSqlFunction res = new GridSqlFunction(null, aggregate.getName());
+
+            Expression[] args = AGG_FUNC_ARGS.get(f);
+
+            if (args != null) {
+                for (Expression arg : args)
+                    res.addChild(parseExpression(arg, calcTypes));
+            }
+
+            log.info("pengg generate JavaAggregate: " + res.toString());
 
             return res;
         }
