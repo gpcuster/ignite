@@ -371,9 +371,6 @@ public class GridSqlQuerySplitter {
 
         String rdcQry = qry.getSQL();
 
-        // Replace udaf function name, so the H2 will invoke a different udaf on reduce stage.
-        rdcQry = rdcQry.replaceAll("UDAF_MAP", "UDAF_REDUCE");
-
         SplitterUtils.checkNoDataTablesInReduceQuery(qry, rdcQry);
 
         // Setup a resulting reduce query.
@@ -1564,6 +1561,19 @@ public class GridSqlQuerySplitter {
 
             // SELECT __C0 AS original_alias
             GridSqlElement rdcEl = SplitterUtils.column(mapColAlias);
+
+            // add reduce udaf
+            if (el instanceof GridSqlFunction) {
+                GridSqlFunction function = (GridSqlFunction)el;
+
+                if (function.name().contains("_UDAF_MAP")) {
+                    String funcName = function.name().replace("_UDAF_MAP", "_UDAF_REDUCE");
+                    GridSqlFunction reduceFunc = new GridSqlFunction(null, funcName);
+                    reduceFunc.addChild(rdcEl);
+
+                    rdcEl = reduceFunc;
+                }
+            }
 
             if (colNames.add(rdcColAlias)) // To handle column name duplication (usually wildcard for few tables).
                 rdcEl = SplitterUtils.alias(rdcColAlias, rdcEl);
